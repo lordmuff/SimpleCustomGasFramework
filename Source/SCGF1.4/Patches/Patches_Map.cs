@@ -7,6 +7,7 @@ namespace SCGF
     /// <summary>
     /// Patches to the vanilla Map class to handle generating and loading the custom gas grid.
     /// </summary>
+    [HarmonyPatch]
     public static class Patches_Map
     {
         private static readonly Type patchType = typeof(Patches_Map);

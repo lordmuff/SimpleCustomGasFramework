@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SCGF.DefRelated;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Verse;
@@ -10,6 +11,8 @@ namespace SCGF
     /// </summary>
     public class GasDef : Def
     {
+        public Material material;
+
         public Color color;
 
         public int dissipationSpeed = 4;
@@ -29,6 +32,8 @@ namespace SCGF
         public bool targetInsects = true;
 
         public List<GasDef_AddsHediff> addsHediffs = null;
+
+        public List<GasDef_DamageDealing> dealsDamage = null;
 
         public GasDef_Immunities immunities = null;
 

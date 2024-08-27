@@ -1,4 +1,5 @@
 ﻿using HarmonyLib;
+using LudeonTK;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
@@ -10,6 +11,7 @@ namespace SCGF
     /// Miscellaneous patches (I can't believe I spelt that right first try), such as handling gas spawns from explosions, adding
     /// custom gases to the UI inspector (bottom left text), and listing custom gases in the debug menu.
     /// </summary>
+    [HarmonyPatch]
     public class Patches_Misc
     {
         private static readonly Type patchType = typeof(Patches_Misc);
@@ -36,7 +38,7 @@ namespace SCGF
         public static void StartExplosion_Postfix(Explosion __instance)
         {
             // skip all this logic if not using 'Unused' gas type, or if the explosion doesn't define a gas
-            if (__instance.postExplosionGasType == null || __instance.postExplosionGasType != GasType.Unused)
+            if (__instance.postExplosionGasType == null)
             {
                 return;
             }

@@ -2,6 +2,8 @@
 using System.Linq;
 using UnityEngine;
 using Verse;
+using RimWorld;
+using Verse.Noise;
 
 namespace SCGF
 {
@@ -69,7 +71,7 @@ namespace SCGF
 
             SetDirect(cellIndex, gasDef, finalDensity);
 
-            map.mapDrawer.MapMeshDirty(cell, MapMeshFlag.Gas);
+            map.mapDrawer.MapMeshDirty(cell, MapMeshFlagDefOf.Gas);
 
             if (canOverflow && overflow > 0)
             {
@@ -83,7 +85,7 @@ namespace SCGF
             {
                 overflow = newDensity - 255;
 
-                return byte.MaxValue;
+                return byte.MaxValue - 1;
             }
 
             overflow = 0;
@@ -96,13 +98,19 @@ namespace SCGF
             return (byte)newDensity;
         }
 
-        public Color ColorAt(IntVec3 cell, FloatRange AlphaRange, Color SmokeColor, Color ToxColor, Color RotColor)
+        public virtual Color ColorAt(IntVec3 cell)
         {
+
+            Color SmokeColor = new Color(200, 200, 200, byte.MaxValue);
+            Color ToxColor = new Color(180, 214, 24, byte.MaxValue);
+            Color RotColor = new Color(214, 90, 24, byte.MaxValue);
+            Color DeadlifeColor = new Color(214, 214, 214, byte.MaxValue);
+
             // this should completely replace the parent ColorAt method, since we now do mixing with custom gas colours as well
             int cellIndex = CellIndicesUtility.CellToIndex(cell, map.Size.x);
 
             float[] customGasDensities = new float[GasLibrary.numCustomGasses];
-            float[] vanillaGasDensities = new float[3];
+            float[] vanillaGasDensities = new float[4];
 
             // populate custom gas densities
             for (int i = 0; i < GasLibrary.numCustomGasses; i++)
@@ -111,18 +119,21 @@ namespace SCGF
             }
 
             // populate vanilla gas densities
-            vanillaGasDensities[0] = (int)DensityAt(cell, GasType.BlindSmoke);
-            vanillaGasDensities[1] = (int)DensityAt(cell, GasType.ToxGas);
-            vanillaGasDensities[2] = (int)DensityAt(cell, GasType.RotStink);
+            vanillaGasDensities[0] = DensityAt(cell, GasType.BlindSmoke);
+            vanillaGasDensities[1] = DensityAt(cell, GasType.ToxGas);
+            vanillaGasDensities[2] = DensityAt(cell, GasType.RotStink);
+            vanillaGasDensities[3] = DensityAt(cell, GasType.DeadlifeDust);
 
             float densitySum = customGasDensities.Sum() + vanillaGasDensities.Sum();
 
-            Color result = new Color(0f, 0f, 0f);
+            Color result = new Color32(0, 0, 0, byte.MaxValue);
+            ref Color gasColors = ref result;
 
             // vanilla gas colouring
             result += SmokeColor * (vanillaGasDensities[0] / densitySum);
             result += ToxColor * (vanillaGasDensities[1] / densitySum);
             result += RotColor * (vanillaGasDensities[2] / densitySum);
+            result += DeadlifeColor * (vanillaGasDensities[3] / densitySum);
 
             // custom gas colouring
             for (int i = 0; i < GasLibrary.numCustomGasses; i++)
@@ -130,11 +141,27 @@ namespace SCGF
                 result += GasLibrary.customGassesArray[i].color * (customGasDensities[i] / densitySum);
             }
 
+            FloatRange AlphaRange = new FloatRange(0f, 255f);
             // alpha calculations
             // 3 gases (255 * 3) on a single cell gives the max alpha value
             result.a = AlphaRange.LerpThroughRange(densitySum / 765f);
 
             return result;
+        }
+
+        public GasDef[] GasShaders(ref GasDef[] customGassesArray)
+        {
+
+            // custom gas colouring
+            for (int i = 0; i < GasLibrary.numCustomGasses; i++)
+            {
+
+                GasLibrary.customGassesArray[i].material = MaterialPool.MatFrom("Things/Gas/GasCloudThickA", ShaderDatabase.GasRotating);
+
+            }
+
+            return customGassesArray;
+
         }
 
         public new void Notify_ThingSpawned(Thing thing)
@@ -156,7 +183,7 @@ namespace SCGF
                         customGasDensity[cellIndex * GasLibrary.numCustomGasses + i] = 0;
                     }
 
-                    map.mapDrawer.MapMeshDirty(item, MapMeshFlag.Gas);
+                    map.mapDrawer.MapMeshDirty(item, MapMeshFlagDefOf.Gas);
                 }
             }
         }
@@ -238,7 +265,7 @@ namespace SCGF
             }
         }
 
-        private void TryDissipateGasses(int cellIndex)
+        public void TryDissipateGasses(int cellIndex)
         {
             if (!AnyGasAt(cellIndex))
             {
@@ -270,11 +297,11 @@ namespace SCGF
 
             if (dirtiedGrid)
             {
-                map.mapDrawer.MapMeshDirty(CellIndicesUtility.IndexToCell(cellIndex, map.Size.x), MapMeshFlag.Gas);
+                map.mapDrawer.MapMeshDirty(CellIndicesUtility.IndexToCell(cellIndex, map.Size.x), MapMeshFlagDefOf.Gas);
             }
         }
 
-        private void TryDiffuseGasses(IntVec3 cell, List<IntVec3> cardinalDirections)
+        public void TryDiffuseGasses(IntVec3 cell, List<IntVec3> cardinalDirections)
         {
             int sourceCellIndex = CellIndicesUtility.CellToIndex(cell, map.Size.x);
 
@@ -309,7 +336,7 @@ namespace SCGF
                     {
                         SetDirect(targetCellIndex, gasDef, (byte)gasDensityAtTarget);
 
-                        map.mapDrawer.MapMeshDirty(intVec, MapMeshFlag.Gas);
+                        map.mapDrawer.MapMeshDirty(intVec, MapMeshFlagDefOf.Gas);
 
                         dirtiedSourceCell = true;
 
@@ -324,13 +351,13 @@ namespace SCGF
                 {
                     SetDirect(sourceCellIndex, gasDef, (byte)gasDensityAtSource);
 
-                    map.mapDrawer.MapMeshDirty(cell, MapMeshFlag.Gas);
+                    map.mapDrawer.MapMeshDirty(cell, MapMeshFlagDefOf.Gas);
                 }
             }
 
         }
 
-        private bool TryDiffuseIndividualGas(ref int gasDensityAtSource, ref int gasDensityAtTarget, GasDef gasDef)
+        public bool TryDiffuseIndividualGas(ref int gasDensityAtSource, ref int gasDensityAtTarget, GasDef gasDef)
         {
             // the parent method for this checks if the source has a much higher density than the target,
             // and partially equalizes (i.e. diffuses) them if so
@@ -434,7 +461,7 @@ namespace SCGF
 
                 SetDirect(beqCellIndex, newDensities);
 
-                map.mapDrawer.MapMeshDirty(beqCells[l], MapMeshFlag.Gas);
+                map.mapDrawer.MapMeshDirty(beqCells[l], MapMeshFlagDefOf.Gas);
             }
 
             void VisitCell(IntVec3 cell)
@@ -483,7 +510,7 @@ namespace SCGF
 
         public new void ExposeData() 
         {
-            DataExposeUtility.ByteArray(ref customGasDensity, "customGasDensity");
+            DataExposeUtility.LookByteArray(ref customGasDensity, "customGasDensity");
         }
     }
 }

@@ -1,8 +1,10 @@
 ﻿using HarmonyLib;
+using RimWorld;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Verse;
+using static HarmonyLib.Code;
 
 namespace SCGF
 {
@@ -14,6 +16,8 @@ namespace SCGF
         private static readonly Type patchType = typeof(Patches_GasGrid);
 
         private static readonly Type gasGrid = typeof(GasGrid);
+
+        private static readonly Type sectionLayerGas = typeof(SectionLayer_Gas);
 
         public static void PatchAll(Harmony harmony)
         {
@@ -28,14 +32,17 @@ namespace SCGF
             harmony.Patch(AccessTools.Method(gasGrid, nameof(GasGrid.AddGas)),
                 prefix: new HarmonyMethod(patchType, nameof(AddGas_Prefix)));
 
-            harmony.Patch(AccessTools.Method(gasGrid, nameof(GasGrid.ColorAt)),
+            harmony.Patch(AccessTools.Method(sectionLayerGas, nameof(Section)),
+                postfix: new HarmonyMethod(patchType, nameof(GasMaterial_Postfix)));
+
+            harmony.Patch(AccessTools.Method(sectionLayerGas, nameof(SectionLayer_Gas.ColorAt)),
                 prefix: new HarmonyMethod(patchType, nameof(ColorAt_Prefix)));
 
             harmony.Patch(AccessTools.Method(gasGrid, nameof(GasGrid.Notify_ThingSpawned)),
                 postfix: new HarmonyMethod(patchType, nameof(Notify_ThingSpawned_Postfix)));
 
             // harmony.Patch(AccessTools.Method(gasGrid, "TryDissipateGasses"), // private method
-                // postfix: new HarmonyMethod(patchType, nameof(TryDissipateGasses_Postfix)));
+            // postfix: new HarmonyMethod(patchType, nameof(TryDissipateGasses_Postfix)));
 
             harmony.Patch(AccessTools.Method(gasGrid, nameof(GasGrid.EqualizeGasThroughBuilding)),
                 postfix: new HarmonyMethod(patchType, nameof(EqualizeGasThroughBuilding_Postfix)));
@@ -112,14 +119,27 @@ namespace SCGF
         }
 
         /// <summary>
+        /// buh bwuh bhuh ludeon moved gas texturing and coloring to shaders xd
+        /// </summary>
+
+        public static void GasMaterial_Postfix(ExtendedGasGrid __instance, ref GasDef[] ___customGassesArray, ref Section __result)
+        {
+            // FUCK
+
+            __result = __instance(___customGassesArray);
+
+        }
+
+        /// <summary>
         /// Since calculating the colour of a cell requires knowledge of all the gases present - both vanilla and custom,
         /// only call the child method, since the parent doesn't account for custom gases.
         /// </summary>
-        public static bool ColorAt_Prefix(ExtendedGasGrid __instance, IntVec3 cell, ref Color __result, ref FloatRange ___AlphaRange, ref Color ___SmokeColor, ref Color ___ToxColor, ref Color ___RotColor)
+
+        public static bool ColorAt_Prefix(ExtendedGasGrid __instance, IntVec3 cell, ref Color __result)
         {
             // since the child doesn't have access to the parents private class fields like the colour of each vanilla gas,
             // we need to access it using injections and pass them in manually
-            __result = __instance.ColorAt(cell, ___AlphaRange, ___SmokeColor, ___ToxColor, ___RotColor);
+            __result = __instance.ColorAt(cell);
 
             return false;
         }
@@ -140,26 +160,31 @@ namespace SCGF
         /// <summary>
         /// A call to dissipate vanilla gases should also try to dissipate custom gases.
         /// </summary>
-        /*public static void TryDissipateGasses_Postfix(ExtendedGasGrid __instance, int index)
+        /*
+        public static void TryDissipateGasses_Postfix(ExtendedGasGrid __instance, int index)
         {
             __instance.TryDissipateGasses(index);
-        }*/
-
+        }
+        */
         /// <summary>
         /// A call to equalize vanilla gases should also try to equalize custom gases.
         /// </summary>
+        
         public static void EqualizeGasThroughBuilding_Postfix(ExtendedGasGrid __instance, Building b, bool twoWay)
         {
             __instance.EqualizeGasThroughBuilding(b, twoWay);
         }
+        
 
         /// <summary>
         /// A call to diffuse vanilla gases should also try to diffuse custom gases.
         /// </summary>
-        /*public static void TryDiffuseGasses_Postfix(ExtendedGasGrid __instance, IntVec3 cell, List<IntVec3> ___cardinalDirections)
+        /*
+        public static void TryDiffuseGasses_Postfix(ExtendedGasGrid __instance, IntVec3 cell, List<IntVec3> ___cardinalDirections)
         {
             __instance.TryDiffuseGasses(cell, ___cardinalDirections);
-        }*/
+        }
+        */
 
         /// <summary>
         /// The debug 'Fill All Gas' option should also fill cells with custom gases instead of just the vanilla ones.

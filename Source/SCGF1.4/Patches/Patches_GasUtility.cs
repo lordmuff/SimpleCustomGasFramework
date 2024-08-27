@@ -8,6 +8,7 @@ namespace SCGF
     /// <summary>
     /// Patches to the vanilla GasUtility class to add functionality to custom gases, like applying hediffs and toxic buildup.
     /// </summary>
+    [HarmonyPatch]
     public static class Patches_GasUtility
     {
         private static readonly Type patchType = typeof(Patches_GasUtility);
@@ -46,7 +47,7 @@ namespace SCGF
                     continue;
                 }
 
-                byte gasDensity = pawn.Position.GasDentity(pawn.Map, (GasType)(GasLibrary.firstCustomGasIndex + i));
+                byte gasDensity = pawn.Position.GasDensity(pawn.Map, (GasType)(GasLibrary.firstCustomGasIndex + i));
                 if (gasDensity == 0)
                 {
                     continue;
@@ -79,7 +80,7 @@ namespace SCGF
             {
                 GasDef gasDef = GasLibrary.customGassesArray[i];
 
-                byte gasDensity = pawn.Position.GasDentity(pawn.Map, (GasType)(GasLibrary.firstCustomGasIndex + i));
+                byte gasDensity = pawn.Position.GasDensity(pawn.Map, (GasType)(GasLibrary.firstCustomGasIndex + i));
                 if (gasDensity == 0)
                 {
                     continue;
