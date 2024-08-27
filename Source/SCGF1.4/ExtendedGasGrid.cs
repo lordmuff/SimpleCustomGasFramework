@@ -149,21 +149,6 @@ namespace SCGF
             return result;
         }
 
-        public GasDef[] GasShaders(ref GasDef[] customGassesArray)
-        {
-
-            // custom gas colouring
-            for (int i = 0; i < GasLibrary.numCustomGasses; i++)
-            {
-
-                GasLibrary.customGassesArray[i].material = MaterialPool.MatFrom("Things/Gas/GasCloudThickA", ShaderDatabase.GasRotating);
-
-            }
-
-            return customGassesArray;
-
-        }
-
         public new void Notify_ThingSpawned(Thing thing)
         {
             // the parent method for this is used to remove custom gases when 'full' things are spawned on their cells (e.g. walls)

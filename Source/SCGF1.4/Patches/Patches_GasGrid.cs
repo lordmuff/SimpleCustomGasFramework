@@ -32,9 +32,6 @@ namespace SCGF
             harmony.Patch(AccessTools.Method(gasGrid, nameof(GasGrid.AddGas)),
                 prefix: new HarmonyMethod(patchType, nameof(AddGas_Prefix)));
 
-            harmony.Patch(AccessTools.Method(sectionLayerGas, nameof(Section)),
-                postfix: new HarmonyMethod(patchType, nameof(GasMaterial_Postfix)));
-
             harmony.Patch(AccessTools.Method(sectionLayerGas, nameof(SectionLayer_Gas.ColorAt)),
                 prefix: new HarmonyMethod(patchType, nameof(ColorAt_Prefix)));
 
@@ -118,17 +115,6 @@ namespace SCGF
             return false;
         }
 
-        /// <summary>
-        /// buh bwuh bhuh ludeon moved gas texturing and coloring to shaders xd
-        /// </summary>
-
-        public static void GasMaterial_Postfix(ExtendedGasGrid __instance, ref GasDef[] ___customGassesArray, ref Section __result)
-        {
-            // FUCK
-
-            __result = __instance(___customGassesArray);
-
-        }
 
         /// <summary>
         /// Since calculating the colour of a cell requires knowledge of all the gases present - both vanilla and custom,

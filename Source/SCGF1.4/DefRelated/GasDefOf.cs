@@ -11,6 +11,8 @@ namespace SCGF
 
         public static GasDef RotStink;
 
+        public static GasDef DeadlifeDust;
+
         static GasDefOf()
         {
             DefOfHelper.EnsureInitializedInCtor(typeof(GasDefOf));

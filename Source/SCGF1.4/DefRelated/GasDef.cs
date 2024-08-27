@@ -11,7 +11,6 @@ namespace SCGF
     /// </summary>
     public class GasDef : Def
     {
-        public Material material;
 
         public Color color;
 
